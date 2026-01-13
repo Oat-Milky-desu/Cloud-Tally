@@ -6,11 +6,15 @@ const App = {
         categories: [],
         currentPage: 'dashboard',
         recordsPage: 1,
-        pendingAIData: null
+        pendingAIData: null,
+        theme: 'dark'
     },
 
     // Initialize the application
     async init() {
+        // Initialize theme first (before auth check to avoid flash)
+        this.initTheme();
+
         // Check authentication
         const isAuthenticated = await Auth.requireAuth();
         if (!isAuthenticated) return;
@@ -25,8 +29,47 @@ const App = {
         // Setup event listeners
         this.setupEventListeners();
 
+        // Setup theme toggle
+        this.setupThemeToggle();
+
         // Hide loading
         this.hideLoading();
+    },
+
+    // Initialize theme from localStorage or system preference
+    initTheme() {
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            this.state.theme = savedTheme;
+        } else {
+            // Check system preference
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            this.state.theme = prefersDark ? 'dark' : 'light';
+        }
+        this.applyTheme(this.state.theme);
+    },
+
+    // Apply theme to document
+    applyTheme(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        this.state.theme = theme;
+        localStorage.setItem('theme', theme);
+    },
+
+    // Toggle theme
+    toggleTheme() {
+        const newTheme = this.state.theme === 'dark' ? 'light' : 'dark';
+        this.applyTheme(newTheme);
+    },
+
+    // Setup theme toggle button
+    setupThemeToggle() {
+        const themeToggle = document.getElementById('themeToggle');
+        if (themeToggle) {
+            themeToggle.addEventListener('click', () => {
+                this.toggleTheme();
+            });
+        }
     },
 
     // Update user info in UI

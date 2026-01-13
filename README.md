@@ -2,6 +2,9 @@
 
 基于 Cloudflare Pages + D1 的 AI 驱动个人记账系统
 
+[![Deploy to Cloudflare Pages](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/Oat-Milky-desu/payment-record)
+
+
 ## ✨ 功能特性
 
 - 📝 **智能记账** - 支持自然语言输入，AI 自动解析
@@ -9,89 +12,134 @@
 - 📊 **数据分析** - AI 生成财务分析报告和建议
 - 🔐 **用户认证** - 基于环境变量的安全认证
 - 📈 **可视化图表** - 直观的收支分析图表
-- 🌙 **暗色主题** - 现代化的深色界面设计
+- 🌓 **主题切换** - 支持日间/夜间模式
 
-## 🚀 快速开始
+## 🚀 一键部署
+
+### 方式一：使用部署按钮（推荐）
+
+1. **Fork 本仓库** 到你的 GitHub 账户
+2. **点击上方的蓝色按钮** "Deploy to Cloudflare Pages"
+3. **登录 Cloudflare 账户** 并授权 GitHub
+4. **填写环境变量**：
+   - `AUTH_USERNAME` - 登录用户名
+   - `AUTH_PASSWORD` - 登录密码（请使用强密码！）
+   - `AI_API_KEY` - OpenAI 兼容的 API 密钥
+5. **等待部署完成**，系统会自动创建 D1 数据库并初始化
+6. **访问你的应用** 🎉
+
+### 方式二：手动部署
+
+### 步骤 1: 登录 Cloudflare
+
+```bash
+npx wrangler login
+```
+
+### 步骤 2: 创建 D1 数据库
+
+```bash
+npx wrangler d1 create payment-records
+```
+
+命令成功后会返回类似以下的信息：
+```
+✅ Successfully created DB 'payment-records' in region APAC
+Created your new D1 database.
+
+[[d1_databases]]
+binding = "DB"
+database_name = "payment-records"
+database_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"  <-- 复制这个 ID
+```
+
+### 步骤 3: 更新配置文件
+
+编辑 `wrangler.toml`，将 `database_id` 替换为上一步获得的实际 ID：
+
+```toml
+[[d1_databases]]
+binding = "DB"
+database_name = "payment-records"
+database_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"  # <-- 替换为你的实际 ID
+```
+
+### 步骤 4: 初始化数据库
+
+```bash
+npx wrangler d1 execute payment-records --remote --file=./schema.sql
+```
+
+### 步骤 5: 配置环境变量
+
+在 [Cloudflare Dashboard](https://dash.cloudflare.com) 中配置环境变量：
+
+1. 进入 **Workers & Pages**
+2. 选择你的项目（部署后会出现）
+3. 进入 **Settings** → **Environment variables**
+4. 添加以下变量：
+
+| 变量名 | 必填 | 说明 | 示例 |
+|--------|------|------|------|
+| `AUTH_USERNAME` | ✅ | 登录用户名 | `admin` |
+| `AUTH_PASSWORD` | ✅ | 登录密码 | `YourSecurePassword123!` |
+| `AI_API_KEY` | ✅ | OpenAI 兼容 API 密钥 | `sk-xxxxxxxx` |
+| `SESSION_EXPIRY_HOURS` | ❌ | 会话有效期（小时），默认 24 | `48` |
+| `AI_API_BASE` | ❌ | API 基础 URL | `https://api.openai.com/v1` |
+| `AI_MODEL` | ❌ | 文本模型，默认 gpt-4o-mini | `gpt-4o` |
+| `AI_VISION_MODEL` | ❌ | 视觉模型，默认 gpt-4o | `gpt-4o` |
+
+> ⚠️ **重要**: 请使用强密码！生产环境切勿使用默认密码。
+
+### 步骤 6: 部署
+
+```bash
+npx wrangler pages deploy src
+```
+
+部署完成后，访问返回的 URL 即可使用。
+
+---
+
+## 🛠️ 本地开发
 
 ### 前置要求
 
 - Node.js 18+
-- Cloudflare 账户
-- OpenAI 兼容的 API Key
+- npm 或 pnpm
 
-### 本地开发
+### 开发步骤
 
 1. **安装依赖**
 ```bash
 npm install
 ```
 
-2. **创建本地 D1 数据库**
+2. **设置本地数据库 ID**
+
+编辑 `wrangler.toml`，临时设置 `database_id = "local"` 用于本地开发。
+
+3. **初始化本地数据库**
 ```bash
 npx wrangler d1 execute payment-records --local --file=./schema.sql
 ```
 
-3. **启动开发服务器**
+4. **启动开发服务器**
 ```bash
 npm run dev
 ```
 
-4. **访问应用**
+5. **访问应用**
+
 打开浏览器访问 http://localhost:8788
 
 默认登录凭据：
 - 用户名: `admin`
 - 密码: `admin123`
 
-## ☁️ 部署到 Cloudflare
+> 💡 本地开发完成后，记得将 `database_id` 改回生产环境的实际 ID。
 
-### 1. 登录 Cloudflare
-```bash
-npx wrangler login
-```
-
-### 2. 创建 D1 数据库
-```bash
-npx wrangler d1 create payment-records
-```
-
-创建成功后，将返回的 `database_id` 更新到 `wrangler.toml` 文件中。
-
-### 3. 初始化数据库
-```bash
-npx wrangler d1 execute payment-records --file=./schema.sql
-```
-
-### 4. 配置环境变量
-
-在 Cloudflare Dashboard 中配置以下环境变量：
-
-| 变量名 | 必填 | 说明 |
-|--------|------|------|
-| `AUTH_USERNAME` | ✅ | 登录用户名 |
-| `AUTH_PASSWORD` | ✅ | 登录密码 |
-| `SESSION_EXPIRY_HOURS` | ❌ | 会话有效期（小时），默认 24 |
-| `AI_API_KEY` | ✅ | OpenAI 兼容 API 密钥 |
-| `AI_API_BASE` | ❌ | API 基础 URL，默认 https://api.openai.com/v1 |
-| `AI_MODEL` | ❌ | 文本模型，默认 gpt-4o-mini |
-| `AI_VISION_MODEL` | ❌ | 视觉模型，默认 gpt-4o |
-
-**配置步骤：**
-1. 进入 Cloudflare Dashboard
-2. 选择 Workers & Pages
-3. 找到你的项目
-4. 进入 Settings → Environment variables
-5. 添加上述环境变量
-
-### 5. 部署
-```bash
-npm run deploy
-```
-
-或者使用 wrangler 直接部署：
-```bash
-npx wrangler pages deploy src
-```
+---
 
 ## 📁 项目结构
 
@@ -132,6 +180,8 @@ payment-record/
 └── README.md
 ```
 
+---
+
 ## 🔧 API 文档
 
 ### 认证
@@ -163,13 +213,7 @@ payment-record/
 - `POST /api/ai/ocr` - 图片识别
 - `POST /api/ai/analyze` - 生成分析报告
 
-## 🎨 使用的技术
-
-- **前端**: HTML, CSS, JavaScript, Chart.js
-- **后端**: Cloudflare Workers/Functions
-- **数据库**: Cloudflare D1 (SQLite)
-- **AI**: OpenAI 兼容 API (GPT-4, etc.)
-- **部署**: Cloudflare Pages
+---
 
 ## 📝 使用示例
 
@@ -194,12 +238,16 @@ payment-record/
 - 交通发票
 - 各类账单
 
+---
+
 ## ⚠️ 注意事项
 
-1. 请务必设置强密码保护您的数据
-2. AI 功能需要有效的 API Key
-3. 本地开发时数据存储在 `.wrangler/state` 目录
-4. 生产环境请使用 HTTPS
+1. **安全**: 生产环境请务必使用强密码
+2. **AI Key**: AI 功能需要有效的 OpenAI 兼容 API Key
+3. **D1 绑定**: 部署前必须正确配置 `database_id`
+4. **HTTPS**: Cloudflare Pages 默认启用 HTTPS
+
+---
 
 ## 📄 License
 

@@ -1,0 +1,54 @@
+{
+    "name": "智能记账 - AI Expense Tracker",
+    "description": "基于 Cloudflare Pages + D1 的 AI 驱动个人记账系统",
+    "deploy": {
+        "type": "pages",
+        "directory": "src"
+    },
+    "bindings": {
+        "d1_databases": [
+            {
+                "binding": "DB",
+                "name": "payment-records"
+            }
+        ]
+    },
+    "env": {
+        "AUTH_USERNAME": {
+            "description": "登录用户名",
+            "required": true,
+            "default": "admin"
+        },
+        "AUTH_PASSWORD": {
+            "description": "登录密码（请使用强密码）",
+            "required": true
+        },
+        "SESSION_EXPIRY_HOURS": {
+            "description": "登录会话有效期（小时）",
+            "required": false,
+            "default": "24"
+        },
+        "AI_API_KEY": {
+            "description": "OpenAI 兼容的 API 密钥",
+            "required": true
+        },
+        "AI_API_BASE": {
+            "description": "AI API 基础 URL",
+            "required": false,
+            "default": "https://api.openai.com/v1"
+        },
+        "AI_MODEL": {
+            "description": "AI 文本模型名称",
+            "required": false,
+            "default": "gpt-4o-mini"
+        },
+        "AI_VISION_MODEL": {
+            "description": "AI 视觉模型名称",
+            "required": false,
+            "default": "gpt-4o"
+        }
+    },
+    "postDeploy": {
+        "run": "npx wrangler d1 execute payment-records --remote --file=./schema.sql"
+    }
+}

@@ -35,15 +35,18 @@ export async function onRequestPost(context) {
             'INSERT INTO sessions (id, username, expires_at) VALUES (?, ?, ?)'
         ).bind(sessionToken, username, expiresAt).run();
 
-        // Set cookie
+        // Set cookie (don't use Secure on localhost for development)
+        const isSecure = request.url.startsWith('https://');
         const cookieOptions = [
             `session=${sessionToken}`,
             'Path=/',
             `Max-Age=${expiryHours * 60 * 60}`,
             'HttpOnly',
-            'Secure',
-            'SameSite=Strict'
-        ].join('; ');
+            'SameSite=Lax'
+        ];
+        if (isSecure) {
+            cookieOptions.push('Secure');
+        }
 
         return new Response(JSON.stringify({
             success: true,
@@ -53,7 +56,7 @@ export async function onRequestPost(context) {
             status: 200,
             headers: {
                 'Content-Type': 'application/json',
-                'Set-Cookie': cookieOptions
+                'Set-Cookie': cookieOptions.join('; ')
             }
         });
     } catch (error) {

@@ -3,16 +3,20 @@ compatibility_date = "2024-01-01"
 pages_build_output_dir = "src"
 
 # D1 Database binding
+# IMPORTANT: Replace the database_id with your actual database ID after running:
+# npx wrangler d1 create payment-records
 [[d1_databases]]
 binding = "DB"
 database_name = "payment-records"
-database_id = "" # Fill this after creating the database with `wrangler d1 create payment-records`
+database_id = "" # <-- REQUIRED: Fill this with the actual database_id from Cloudflare
 
-# Environment variables (set these in Cloudflare Dashboard for production)
-# AUTH_USERNAME = "admin"
-# AUTH_PASSWORD = "your-password"
-# SESSION_EXPIRY_HOURS = "24"
-# AI_API_KEY = "sk-xxx"
-# AI_API_BASE = "https://api.openai.com/v1"
-# AI_MODEL = "gpt-4o"
-# AI_VISION_MODEL = "gpt-4o"
+# Environment variables (configure these in Cloudflare Dashboard > Workers & Pages > Settings > Environment variables)
+# Required:
+#   AUTH_USERNAME     - Login username
+#   AUTH_PASSWORD     - Login password (use a strong password!)
+#   AI_API_KEY        - OpenAI-compatible API key
+# Optional:
+#   SESSION_EXPIRY_HOURS  - Session validity in hours (default: 24)
+#   AI_API_BASE           - API base URL (default: https://api.openai.com/v1)
+#   AI_MODEL              - Text model name (default: gpt-4o-mini)
+#   AI_VISION_MODEL       - Vision model name (default: gpt-4o)

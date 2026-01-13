@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -28,13 +29,20 @@
             width: 200%;
             height: 200%;
             background: radial-gradient(circle at 30% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
-                        radial-gradient(circle at 70% 80%, rgba(16, 185, 129, 0.1) 0%, transparent 50%);
+                radial-gradient(circle at 70% 80%, rgba(16, 185, 129, 0.1) 0%, transparent 50%);
             animation: aurora 20s ease-in-out infinite;
         }
 
         @keyframes aurora {
-            0%, 100% { transform: rotate(0deg); }
-            50% { transform: rotate(180deg); }
+
+            0%,
+            100% {
+                transform: rotate(0deg);
+            }
+
+            50% {
+                transform: rotate(180deg);
+            }
         }
 
         .login-container {
@@ -176,7 +184,9 @@
         }
 
         @keyframes spin {
-            to { transform: translate(-50%, -50%) rotate(360deg); }
+            to {
+                transform: translate(-50%, -50%) rotate(360deg);
+            }
         }
 
         .error-message {
@@ -230,16 +240,21 @@
         }
 
         @keyframes float {
-            0%, 100% {
+
+            0%,
+            100% {
                 transform: translateY(100vh) rotate(0deg);
                 opacity: 0;
             }
+
             10% {
                 opacity: 0.3;
             }
+
             90% {
                 opacity: 0.3;
             }
+
             100% {
                 transform: translateY(-100vh) rotate(720deg);
                 opacity: 0;
@@ -247,9 +262,17 @@
         }
     </style>
 </head>
+
 <body>
     <div class="particles" id="particles"></div>
-    
+
+    <!-- Theme Toggle -->
+    <button class="theme-toggle" id="themeToggle" title="切换主题"
+        style="position: fixed; top: 1rem; right: 1rem; z-index: 100;">
+        <span class="icon-sun">☀️</span>
+        <span class="icon-moon">🌙</span>
+    </button>
+
     <div class="login-container">
         <div class="login-card">
             <div class="login-header">
@@ -257,29 +280,31 @@
                 <h1 class="login-title">智能记账</h1>
                 <p class="login-subtitle">AI 驱动的个人财务管理</p>
             </div>
-            
+
             <form class="login-form" id="loginForm">
                 <div id="errorMessage" class="error-message">
                     <span>⚠️</span>
                     <span id="errorText"></span>
                 </div>
-                
+
                 <div class="form-group">
                     <label class="form-label" for="username">用户名</label>
-                    <input type="text" id="username" class="form-input" placeholder="请输入用户名" required autocomplete="username">
+                    <input type="text" id="username" class="form-input" placeholder="请输入用户名" required
+                        autocomplete="username">
                 </div>
-                
+
                 <div class="form-group">
                     <label class="form-label" for="password">密码</label>
-                    <input type="password" id="password" class="form-input" placeholder="请输入密码" required autocomplete="current-password">
+                    <input type="password" id="password" class="form-input" placeholder="请输入密码" required
+                        autocomplete="current-password">
                 </div>
-                
+
                 <button type="submit" class="login-btn" id="loginBtn">
                     <span class="btn-text">登 录</span>
                     <span class="spinner"></span>
                 </button>
             </form>
-            
+
             <p class="footer-text">
                 安全登录 · 数据加密存储
             </p>
@@ -287,11 +312,35 @@
     </div>
 
     <script>
+        // Initialize theme
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme) {
+                document.documentElement.setAttribute('data-theme', savedTheme);
+            } else {
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+            }
+        }
+
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        }
+
+        // Initialize theme immediately
+        initTheme();
+
+        // Theme toggle button
+        document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+
         // Create floating particles
         function createParticles() {
             const container = document.getElementById('particles');
             const particleCount = 20;
-            
+
             for (let i = 0; i < particleCount; i++) {
                 const particle = document.createElement('div');
                 particle.className = 'particle';
@@ -301,7 +350,7 @@
                 container.appendChild(particle);
             }
         }
-        
+
         createParticles();
 
         // Check if already logged in
@@ -316,7 +365,7 @@
                 // Not logged in, stay on login page
             }
         }
-        
+
         checkAuth();
 
         // Handle login form
@@ -327,28 +376,28 @@
 
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value;
-            
+
             if (!username || !password) {
                 showError('请输入用户名和密码');
                 return;
             }
-            
+
             loginBtn.classList.add('loading');
             loginBtn.disabled = true;
             hideError();
-            
+
             try {
                 const response = await fetch('/api/auth/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, password })
                 });
-                
+
                 const data = await response.json();
-                
+
                 if (data.success) {
                     window.location.href = '/';
                 } else {
@@ -372,4 +421,5 @@
         }
     </script>
 </body>
+
 </html>
