@@ -2,7 +2,7 @@
 
 基于 Cloudflare Pages + D1 的 AI 驱动个人记账系统
 
-[![Deploy to Cloudflare Pages](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/Oat-Milky-desu/payment-record)
+[![Deploy to Cloudflare Pages](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/Oat-Milky-desu/Cloud-Tally)
 
 
 ## ✨ 功能特性
