@@ -1,0 +1,24 @@
+{
+  "name": "payment-record",
+  "version": "1.0.0",
+  "description": "AI-powered expense tracking application for Cloudflare Pages",
+  "scripts": {
+    "dev": "wrangler pages dev src --d1=DB=payment-records --local --port 8788",
+    "dev:init": "wrangler d1 execute payment-records --local --file=./schema.sql",
+    "deploy": "wrangler pages deploy src",
+    "db:create": "wrangler d1 create payment-records",
+    "db:init": "wrangler d1 execute payment-records --file=./schema.sql"
+  },
+  "keywords": [
+    "cloudflare",
+    "pages",
+    "d1",
+    "expense-tracker",
+    "ai"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  }
+}

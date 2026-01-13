@@ -1,0 +1,18 @@
+name = "payment-record"
+compatibility_date = "2024-01-01"
+pages_build_output_dir = "src"
+
+# D1 Database binding
+[[d1_databases]]
+binding = "DB"
+database_name = "payment-records"
+database_id = "" # Fill this after creating the database with `wrangler d1 create payment-records`
+
+# Environment variables (set these in Cloudflare Dashboard for production)
+# AUTH_USERNAME = "admin"
+# AUTH_PASSWORD = "your-password"
+# SESSION_EXPIRY_HOURS = "24"
+# AI_API_KEY = "sk-xxx"
+# AI_API_BASE = "https://api.openai.com/v1"
+# AI_MODEL = "gpt-4o"
+# AI_VISION_MODEL = "gpt-4o"
