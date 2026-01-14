@@ -8,7 +8,7 @@ pages_build_output_dir = "src"
 [[d1_databases]]
 binding = "DB"
 database_name = "payment-records"
-database_id = "" # <-- REQUIRED: Fill this with the actual database_id from Cloudflare
+database_id = "1c0aed25-782d-4957-88ff-bd3940e9c0e3"
 
 # Environment variables (configure these in Cloudflare Dashboard > Workers & Pages > Settings > Environment variables)
 # Required:
