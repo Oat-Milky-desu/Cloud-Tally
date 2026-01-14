@@ -2,9 +2,6 @@
 
 基于 Cloudflare Pages + D1 的 AI 驱动个人记账系统
 
-[![Deploy to Cloudflare Pages](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/Oat-Milky-desu/Cloud-Tally)
-
-
 ## ✨ 功能特性
 
 - 📝 **智能记账** - 支持自然语言输入，AI 自动解析
@@ -14,90 +11,151 @@
 - 📈 **可视化图表** - 直观的收支分析图表
 - 🌓 **主题切换** - 支持日间/夜间模式
 
-## 🚀 一键部署
+---
 
-### 方式一：使用部署按钮（推荐）
+## 🚀 部署指南（Cloudflare Dashboard）
 
-1. **Fork 本仓库** 到你的 GitHub 账户
-2. **点击上方的蓝色按钮** "Deploy to Cloudflare Pages"
-3. **登录 Cloudflare 账户** 并授权 GitHub
-4. **填写环境变量**：
-   - `AUTH_USERNAME` - 登录用户名
-   - `AUTH_PASSWORD` - 登录密码（请使用强密码！）
-   - `AI_API_KEY` - OpenAI 兼容的 API 密钥
-5. **等待部署完成**，系统会自动创建 D1 数据库并初始化
-6. **访问你的应用** 🎉
+### 第一步：将代码推送到 GitHub
 
-### 方式二：手动部署
+确保你的代码已经推送到 GitHub 仓库。
 
-### 步骤 1: 登录 Cloudflare
+### 第二步：创建 Cloudflare Pages 项目
 
-```bash
-npx wrangler login
+1. 登录 [Cloudflare Dashboard](https://dash.cloudflare.com)
+2. 点击左侧菜单 **Workers & Pages**
+3. 点击 **Create** 按钮
+4. 选择 **Pages** 标签
+5. 点击 **Connect to Git**
+6. 授权 Cloudflare 访问你的 GitHub
+7. 选择你的仓库（如 `Cloud-Tally`）
+8. 配置构建设置：
+
+| 设置项 | 值 |
+|--------|-----|
+| **Production branch** | `main` |
+| **Framework preset** | `None` |
+| **Build command** | （留空，不填任何内容） |
+| **Build output directory** | `src` |
+
+9. 点击 **Save and Deploy**
+10. 等待首次部署完成（此时应用还无法正常工作，因为还没配置数据库和环境变量）
+
+### 第三步：创建 D1 数据库
+
+1. 在 Cloudflare Dashboard 左侧菜单，点击 **Workers & Pages** → **D1 SQL Database**
+2. 点击 **Create** 按钮
+3. 输入数据库名称（如 `payment-records`）
+4. 选择位置（推荐选择离你较近的区域）
+5. 点击 **Create**
+6. 数据库创建完成后，点击进入该数据库
+7. 点击 **Console** 标签
+8. 将以下 SQL 复制粘贴到控制台中执行：
+
+```sql
+-- 账目记录表
+CREATE TABLE IF NOT EXISTS records (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    type TEXT NOT NULL CHECK(type IN ('income', 'expense')),
+    amount REAL NOT NULL,
+    category TEXT NOT NULL,
+    description TEXT,
+    date TEXT NOT NULL,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
+);
+
+-- 类别表
+CREATE TABLE IF NOT EXISTS categories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    type TEXT NOT NULL CHECK(type IN ('income', 'expense')),
+    icon TEXT,
+    color TEXT
+);
+
+-- 会话表
+CREATE TABLE IF NOT EXISTS sessions (
+    id TEXT PRIMARY KEY,
+    username TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
+-- 索引
+CREATE INDEX IF NOT EXISTS idx_records_date ON records(date);
+CREATE INDEX IF NOT EXISTS idx_records_type ON records(type);
+CREATE INDEX IF NOT EXISTS idx_records_category ON records(category);
+CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at);
+
+-- 默认支出类别
+INSERT OR IGNORE INTO categories (name, type, icon, color) VALUES
+('餐饮', 'expense', '🍜', '#ef4444'),
+('交通', 'expense', '🚗', '#f97316'),
+('购物', 'expense', '🛒', '#eab308'),
+('娱乐', 'expense', '🎮', '#22c55e'),
+('医疗', 'expense', '🏥', '#06b6d4'),
+('教育', 'expense', '📚', '#3b82f6'),
+('居住', 'expense', '🏠', '#8b5cf6'),
+('通讯', 'expense', '📱', '#ec4899'),
+('其他支出', 'expense', '📦', '#6b7280');
+
+-- 默认收入类别
+INSERT OR IGNORE INTO categories (name, type, icon, color) VALUES
+('工资', 'income', '💰', '#22c55e'),
+('奖金', 'income', '🎁', '#10b981'),
+('投资', 'income', '📈', '#14b8a6'),
+('兼职', 'income', '💼', '#06b6d4'),
+('其他收入', 'income', '💵', '#6b7280');
 ```
 
-### 步骤 2: 创建 D1 数据库
+9. 点击 **Execute** 执行 SQL
 
-```bash
-npx wrangler d1 create payment-records
-```
+### 第四步：绑定数据库到项目
 
-命令成功后会返回类似以下的信息：
-```
-✅ Successfully created DB 'payment-records' in region APAC
-Created your new D1 database.
+1. 返回 **Workers & Pages**
+2. 点击你的 Pages 项目（如 `cloud-tally`）
+3. 点击 **Settings** 标签
+4. 在左侧菜单选择 **Functions**（或 **Bindings**）
+5. 找到 **D1 database bindings** 部分
+6. 点击 **Add binding**
+7. 填写：
+   - **Variable name**: `DB`（必须是大写的 DB）
+   - **D1 database**: 选择你刚创建的数据库
+8. 点击 **Save**
 
-[[d1_databases]]
-binding = "DB"
-database_name = "payment-records"
-database_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"  <-- 复制这个 ID
-```
+### 第五步：配置环境变量
 
-### 步骤 3: 更新配置文件
+1. 仍在项目 **Settings** 页面
+2. 在左侧菜单选择 **Environment variables**
+3. 点击 **Add variable** 添加以下变量：
 
-编辑 `wrangler.toml`，将 `database_id` 替换为上一步获得的实际 ID：
-
-```toml
-[[d1_databases]]
-binding = "DB"
-database_name = "payment-records"
-database_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"  # <-- 替换为你的实际 ID
-```
-
-### 步骤 4: 初始化数据库
-
-```bash
-npx wrangler d1 execute payment-records --remote --file=./schema.sql
-```
-
-### 步骤 5: 配置环境变量
-
-在 [Cloudflare Dashboard](https://dash.cloudflare.com) 中配置环境变量：
-
-1. 进入 **Workers & Pages**
-2. 选择你的项目（部署后会出现）
-3. 进入 **Settings** → **Environment variables**
-4. 添加以下变量：
-
-| 变量名 | 必填 | 说明 | 示例 |
-|--------|------|------|------|
+| 变量名 | 必填 | 说明 | 示例值 |
+|--------|------|------|--------|
 | `AUTH_USERNAME` | ✅ | 登录用户名 | `admin` |
-| `AUTH_PASSWORD` | ✅ | 登录密码 | `YourSecurePassword123!` |
-| `AI_API_KEY` | ✅ | OpenAI 兼容 API 密钥 | `sk-xxxxxxxx` |
-| `SESSION_EXPIRY_HOURS` | ❌ | 会话有效期（小时），默认 24 | `48` |
+| `AUTH_PASSWORD` | ✅ | 登录密码 | `MySecure@Pass123` |
+| `AI_API_KEY` | ✅ | OpenAI API 密钥 | `sk-xxxxxxxx` |
+| `SESSION_EXPIRY_HOURS` | ❌ | 会话有效期（小时） | `24` |
 | `AI_API_BASE` | ❌ | API 基础 URL | `https://api.openai.com/v1` |
-| `AI_MODEL` | ❌ | 文本模型，默认 gpt-4o-mini | `gpt-4o` |
-| `AI_VISION_MODEL` | ❌ | 视觉模型，默认 gpt-4o | `gpt-4o` |
+| `AI_MODEL` | ❌ | 文本模型 | `gpt-4o-mini` |
+| `AI_VISION_MODEL` | ❌ | 视觉模型 | `gpt-4o` |
 
-> ⚠️ **重要**: 请使用强密码！生产环境切勿使用默认密码。
+> ⚠️ **安全提示**：请使用强密码！生产环境切勿使用简单密码。
 
-### 步骤 6: 部署
+4. 点击 **Save**
 
-```bash
-npx wrangler pages deploy src
-```
+### 第六步：重新部署
 
-部署完成后，访问返回的 URL 即可使用。
+配置完环境变量和数据库绑定后，需要重新部署才能生效：
+
+1. 点击项目的 **Deployments** 标签
+2. 找到最新的部署记录
+3. 点击右侧的 **⋮** 菜单
+4. 选择 **Retry deployment**
+5. 等待部署完成
+
+### 第七步：访问你的应用 🎉
+
+部署完成后，访问你的 Pages URL（如 `https://cloud-tally.pages.dev`）即可开始使用！
 
 ---
 
@@ -106,7 +164,7 @@ npx wrangler pages deploy src
 ### 前置要求
 
 - Node.js 18+
-- npm 或 pnpm
+- npm
 
 ### 开发步骤
 
@@ -115,9 +173,12 @@ npx wrangler pages deploy src
 npm install
 ```
 
-2. **设置本地数据库 ID**
+2. **修改配置用于本地开发**
 
-编辑 `wrangler.toml`，临时设置 `database_id = "local"` 用于本地开发。
+编辑 `wrangler.toml`，将 `database_id` 设置为 `"local"`：
+```toml
+database_id = "local"
+```
 
 3. **初始化本地数据库**
 ```bash
@@ -137,81 +198,28 @@ npm run dev
 - 用户名: `admin`
 - 密码: `admin123`
 
-> 💡 本地开发完成后，记得将 `database_id` 改回生产环境的实际 ID。
-
 ---
 
 ## 📁 项目结构
 
 ```
-payment-record/
-├── functions/                    # Cloudflare Functions API
-│   ├── _middleware.js           # 全局认证中间件
+├── functions/           # Cloudflare Functions (后端 API)
+│   ├── _middleware.js   # 认证中间件
 │   └── api/
-│       ├── auth/                # 认证相关 API
-│       │   ├── login.js
-│       │   ├── logout.js
-│       │   └── verify.js
-│       ├── records/             # 账目 CRUD
-│       │   ├── index.js
-│       │   └── [id].js
-│       ├── categories/          # 类别管理
-│       │   └── index.js
-│       ├── ai/                  # AI 功能
-│       │   ├── parse.js
-│       │   ├── ocr.js
-│       │   └── analyze.js
-│       └── stats/               # 统计数据
-│           └── index.js
-├── src/                         # 前端静态文件
-│   ├── index.html              # 主页面
-│   ├── login.html              # 登录页面
-│   ├── css/
-│   │   └── style.css
-│   └── js/
-│       ├── app.js              # 主应用逻辑
-│       ├── api.js              # API 封装
-│       ├── auth.js             # 认证模块
-│       ├── ai.js               # AI 功能
-│       └── charts.js           # 图表配置
-├── schema.sql                   # 数据库模式
-├── wrangler.toml               # Wrangler 配置
-├── package.json
-└── README.md
+│       ├── auth/        # 认证 API
+│       ├── records/     # 账目 CRUD
+│       ├── categories/  # 类别管理
+│       ├── ai/          # AI 功能
+│       └── stats/       # 统计数据
+├── src/                 # 前端静态文件
+│   ├── index.html       # 主页面
+│   ├── login.html       # 登录页面
+│   ├── css/             # 样式文件
+│   └── js/              # JavaScript 模块
+├── schema.sql           # 数据库初始化脚本
+├── wrangler.toml        # Wrangler 配置
+└── package.json
 ```
-
----
-
-## 🔧 API 文档
-
-### 认证
-
-- `POST /api/auth/login` - 用户登录
-- `POST /api/auth/logout` - 用户登出
-- `GET /api/auth/verify` - 验证会话
-
-### 账目
-
-- `GET /api/records` - 获取账目列表
-- `POST /api/records` - 创建账目
-- `GET /api/records/:id` - 获取单个账目
-- `PUT /api/records/:id` - 更新账目
-- `DELETE /api/records/:id` - 删除账目
-
-### 类别
-
-- `GET /api/categories` - 获取类别列表
-- `POST /api/categories` - 创建类别
-
-### 统计
-
-- `GET /api/stats` - 获取统计数据
-
-### AI
-
-- `POST /api/ai/parse` - 自然语言解析
-- `POST /api/ai/ocr` - 图片识别
-- `POST /api/ai/analyze` - 生成分析报告
 
 ---
 
@@ -220,32 +228,37 @@ payment-record/
 ### 自然语言记账
 
 ```
-"今天午餐花了35元"
-→ 自动解析为：支出 ¥35.00 餐饮 今天
-
-"收到工资8000元"
-→ 自动解析为：收入 ¥8000.00 工资 今天
-
-"昨天打车去机场花了120"
-→ 自动解析为：支出 ¥120.00 交通 昨天
+"今天午餐花了35元"  →  支出 ¥35.00 餐饮
+"收到工资8000元"    →  收入 ¥8000.00 工资
+"打车去机场120"     →  支出 ¥120.00 交通
 ```
 
 ### 图片识别
 
-支持上传以下类型的图片：
-- 购物小票
-- 餐饮发票
-- 交通发票
-- 各类账单
+支持上传购物小票、餐饮发票、交通发票等图片，AI 自动提取金额和类别。
 
 ---
 
-## ⚠️ 注意事项
+## ❓ 常见问题
 
-1. **安全**: 生产环境请务必使用强密码
-2. **AI Key**: AI 功能需要有效的 OpenAI 兼容 API Key
-3. **D1 绑定**: 部署前必须正确配置 `database_id`
-4. **HTTPS**: Cloudflare Pages 默认启用 HTTPS
+### Q: 登录时提示"登录失败，请稍后重试"
+
+**可能原因**：
+1. D1 数据库未正确绑定（变量名必须是 `DB`）
+2. 数据库表未创建（需执行 SQL 初始化）
+3. 环境变量未配置
+
+**解决方法**：检查第三、四、五步是否正确完成，然后重新部署。
+
+### Q: AI 功能不可用
+
+**可能原因**：`AI_API_KEY` 环境变量未设置或无效。
+
+**解决方法**：确保在环境变量中正确设置了有效的 OpenAI API Key。
+
+### Q: 如何修改数据库名称？
+
+如果你使用了不同的数据库名称，只需确保在绑定时 **Variable name** 设置为 `DB` 即可，代码中使用的是绑定名称而非数据库名称。
 
 ---
 

@@ -5,7 +5,6 @@
   "scripts": {
     "dev": "wrangler pages dev src --local --port 8788",
     "dev:init": "wrangler d1 execute payment-records --local --file=./schema.sql",
-    "deploy": "wrangler pages deploy src",
     "db:create": "wrangler d1 create payment-records",
     "db:init": "wrangler d1 execute payment-records --file=./schema.sql"
   },
