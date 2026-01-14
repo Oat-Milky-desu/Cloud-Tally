@@ -10,13 +10,16 @@ binding = "DB"
 database_name = "payment-records"
 database_id = "1c0aed25-782d-4957-88ff-bd3940e9c0e3"
 
-# Environment variables (configure these in Cloudflare Dashboard > Workers & Pages > Settings > Environment variables)
-# Required:
-#   AUTH_USERNAME     - Login username
-#   AUTH_PASSWORD     - Login password (use a strong password!)
-#   AI_API_KEY        - OpenAI-compatible API key
-# Optional:
-#   SESSION_EXPIRY_HOURS  - Session validity in hours (default: 24)
-#   AI_API_BASE           - API base URL (default: https://api.openai.com/v1)
-#   AI_MODEL              - Text model name (default: gpt-4o-mini)
-#   AI_VISION_MODEL       - Vision model name (default: gpt-4o)
+# Environment variables
+# NOTE: Sensitive values (AUTH_PASSWORD, AI_API_KEY) should be added as "Secrets" in Cloudflare Dashboard
+[vars]
+AUTH_USERNAME = "chino"
+SESSION_EXPIRY_HOURS = "168"
+AI_API_BASE = "https://gcil2api.lolico.ggff.net/v1"
+AI_MODEL = "gemini-3-flash-preview"
+AI_VISION_MODEL = "gemini-3-flash-preview"
+
+# IMPORTANT: Add these as SECRETS in Cloudflare Dashboard (Settings > Environment variables > Add > Encrypt):
+# - AUTH_PASSWORD (required) - Your login password
+# - AI_API_KEY (required) - Your OpenAI API key
+
