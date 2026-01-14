@@ -34,8 +34,10 @@
 |--------|-----|
 | **Production branch** | `main` |
 | **Framework preset** | `None` |
-| **Build command** | （留空，不填任何内容） |
+| **Build command** | **🈳 必须留空！千万不要填 `npm run deploy`** |
 | **Build output directory** | `src` |
+
+> ⚠️ **常见错误**：如果你在 "Build command" 中填入任何内容，都会导致 `Authentication error [code: 10000]`。请务必保持为空！
 
 9. 点击 **Save and Deploy**
 10. 等待首次部署完成（此时应用还无法正常工作，因为还没配置数据库和环境变量）
