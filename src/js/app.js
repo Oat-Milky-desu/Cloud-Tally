@@ -721,21 +721,27 @@ const App = {
         this.state.pendingAIData = null;
     },
 
-    // Confirm AI record
+    // Confirm AI record(s)
     async confirmAIRecord() {
         if (!this.state.pendingAIData) return;
 
         const data = this.state.pendingAIData;
-        try {
-            await API.records.create({
-                type: data.type,
-                amount: parseFloat(data.amount),
-                category: data.category,
-                date: data.date,
-                description: data.description
-            });
+        const records = data.records || [data];
 
-            this.showToast('记录已添加', 'success');
+        try {
+            let successCount = 0;
+            for (const record of records) {
+                await API.records.create({
+                    type: record.type,
+                    amount: parseFloat(record.amount),
+                    category: record.category,
+                    date: record.date,
+                    description: record.description
+                });
+                successCount++;
+            }
+
+            this.showToast(`已添加 ${successCount} 条记录`, 'success');
             this.closePreviewModal();
             this.loadDashboard();
         } catch (error) {
@@ -743,18 +749,26 @@ const App = {
         }
     },
 
-    // Edit AI record (open in modal)
+    // Edit AI record (open in modal) - only works for single record
     editAIRecord() {
         if (!this.state.pendingAIData) return;
 
         const data = this.state.pendingAIData;
+        const records = data.records || [data];
+
+        if (records.length > 1) {
+            this.showToast('多条记录请直接确认，或取消后逐条输入', 'warning');
+            return;
+        }
+
+        const record = records[0];
         this.closePreviewModal();
-        this.openRecordModal(data.type, {
-            type: data.type,
-            amount: data.amount,
-            category: data.category,
-            date: data.date,
-            description: data.description
+        this.openRecordModal(record.type, {
+            type: record.type,
+            amount: record.amount,
+            category: record.category,
+            date: record.date,
+            description: record.description
         });
     },
 

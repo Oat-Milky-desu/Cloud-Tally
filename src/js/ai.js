@@ -1,12 +1,16 @@
 // AI Module - Handles AI-related functionality
 
 const AI = {
-    // Parse natural language input
+    // Parse natural language input - returns object with data and multiple flag
     async parseText(text) {
         try {
             const result = await API.ai.parse(text);
             if (result && result.success) {
-                return result.data;
+                // Return object indicating if multiple records
+                return {
+                    records: Array.isArray(result.data) ? result.data : [result.data],
+                    multiple: result.multiple || false
+                };
             }
             // Include debug info if available
             const errorMsg = result?.error || '解析失败';
@@ -26,7 +30,10 @@ const AI = {
 
             const result = await API.ai.ocr(base64);
             if (result && result.success) {
-                return result.data;
+                return {
+                    records: Array.isArray(result.data) ? result.data : [result.data],
+                    multiple: result.multiple || false
+                };
             }
             // Include debug info if available
             const errorMsg = result?.error || '图片识别失败';
@@ -62,14 +69,14 @@ const AI = {
         });
     },
 
-    // Format AI parsed data for preview
-    formatPreview(data) {
+    // Format single record for preview
+    formatSinglePreview(data) {
         const typeText = data.type === 'income' ? '收入' : '支出';
         const typeClass = data.type === 'income' ? 'text-success' : 'text-danger';
         const typeEmoji = data.type === 'income' ? '📈' : '📉';
 
         return `
-            <div class="card" style="background: var(--bg-primary);">
+            <div class="card" style="background: var(--bg-primary); margin-bottom: 1rem;">
                 <div class="flex items-center justify-between mb-4">
                     <span class="badge ${data.type === 'income' ? 'badge-income' : 'badge-expense'}">
                         ${typeEmoji} ${typeText}
@@ -92,16 +99,42 @@ const AI = {
                         <div class="font-medium">${data.description || '-'}</div>
                     </div>
                 </div>
-                ${data.items ? `
-                    <div class="mt-4">
-                        <div class="text-muted text-sm mb-2">明细</div>
-                        <ul class="text-sm">
-                            ${data.items.map(item => `<li>• ${item}</li>`).join('')}
-                        </ul>
-                    </div>
-                ` : ''}
             </div>
         `;
+    },
+
+    // Format AI parsed data for preview (supports multiple records)
+    formatPreview(parseResult) {
+        const records = parseResult.records || [parseResult];
+
+        if (records.length === 1) {
+            return this.formatSinglePreview(records[0]);
+        }
+
+        // Multiple records
+        let html = `<div class="text-center mb-4"><span class="badge badge-info">识别到 ${records.length} 笔记录</span></div>`;
+        html += records.map((data, index) => `
+            <div class="card" style="background: var(--bg-primary); margin-bottom: 1rem; position: relative;">
+                <div style="position: absolute; top: 0.5rem; left: 0.5rem; font-size: 0.75rem; color: var(--text-muted);">#${index + 1}</div>
+                <div class="flex items-center justify-between mb-3" style="padding-top: 0.5rem;">
+                    <span class="badge ${data.type === 'income' ? 'badge-income' : 'badge-expense'}">
+                        ${data.type === 'income' ? '📈 收入' : '📉 支出'}
+                    </span>
+                    <span class="text-muted text-sm">${data.date}</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div class="font-medium">${data.category}</div>
+                        <div class="text-muted text-sm">${data.description || '-'}</div>
+                    </div>
+                    <div class="text-xl font-bold ${data.type === 'income' ? 'text-success' : 'text-danger'}">
+                        ¥${parseFloat(data.amount).toFixed(2)}
+                    </div>
+                </div>
+            </div>
+        `).join('');
+
+        return html;
     }
 };
 
