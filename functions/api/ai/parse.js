@@ -39,19 +39,17 @@ export async function onRequestPost(context) {
         const categories = await env.DB.prepare('SELECT name, type FROM categories').all();
         const categoryList = categories.results?.map(c => `${c.name}(${c.type})`).join(', ') || '';
 
-        // Prepare prompt
+        // Prepare prompt - simplified for better compatibility
         const systemPrompt = `你是一个智能记账助手。根据用户的自然语言描述，解析出结构化的账目信息。
 
 可用的类别有: ${categoryList}
 
-请以JSON格式返回，包含以下字段:
-- type: "income" 或 "expense"
-- amount: 金额(数字)
-- category: 类别名称(从可用类别中选择最匹配的)
-- description: 简短描述
-- date: 日期(YYYY-MM-DD格式，如果未提及则使用今天: ${today})
+请严格以纯JSON格式返回（不要用markdown代码块包裹），包含以下字段:
+{"type": "income或expense", "amount": 金额数字, "category": "类别名称", "description": "简短描述", "date": "YYYY-MM-DD"}
 
-只返回JSON，不要有其他内容。如果无法解析，返回 {"error": "无法解析"}`;
+今天的日期是: ${today}
+如果用户没有提到日期，使用今天的日期。
+如果无法解析，返回: {"error": "无法解析"}`;
 
         // Call AI API
         const response = await fetch(`${apiBase}/chat/completions`, {
@@ -72,11 +70,12 @@ export async function onRequestPost(context) {
         });
 
         if (!response.ok) {
-            const error = await response.text();
-            console.error('AI API error:', error);
+            const errorText = await response.text();
+            console.error('AI API error:', response.status, errorText);
             return new Response(JSON.stringify({
                 success: false,
-                error: 'AI 服务调用失败'
+                error: 'AI 服务调用失败',
+                debug: `Status: ${response.status}, Body: ${errorText.substring(0, 200)}`
             }), {
                 status: 500,
                 headers: { 'Content-Type': 'application/json' }
@@ -84,12 +83,34 @@ export async function onRequestPost(context) {
         }
 
         const result = await response.json();
-        const content = result.choices?.[0]?.message?.content;
+
+        // Handle different API response formats
+        let content = null;
+
+        // OpenAI format: result.choices[0].message.content
+        if (result.choices && result.choices[0]?.message?.content) {
+            content = result.choices[0].message.content;
+        }
+        // Some APIs use different formats
+        else if (result.response) {
+            content = result.response;
+        }
+        else if (result.text) {
+            content = result.text;
+        }
+        else if (result.content) {
+            content = result.content;
+        }
+        else if (typeof result === 'string') {
+            content = result;
+        }
 
         if (!content) {
+            console.error('AI response structure:', JSON.stringify(result).substring(0, 500));
             return new Response(JSON.stringify({
                 success: false,
-                error: 'AI 返回为空'
+                error: 'AI 返回格式不兼容',
+                debug: JSON.stringify(result).substring(0, 300)
             }), {
                 status: 500,
                 headers: { 'Content-Type': 'application/json' }
@@ -99,27 +120,26 @@ export async function onRequestPost(context) {
         // Parse JSON from response
         let parsed;
         try {
-            // Clean up the response - remove markdown code blocks if present
+            // Clean up the response
             let cleanContent = content.trim();
 
-            // Remove ```json ... ``` or ``` ... ``` wrappers
-            if (cleanContent.startsWith('```')) {
-                cleanContent = cleanContent.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '');
-            }
+            // Remove markdown code blocks if present
+            cleanContent = cleanContent.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '');
+            cleanContent = cleanContent.trim();
 
-            // Try to extract JSON from the response
+            // Try to extract JSON object
             const jsonMatch = cleanContent.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
                 parsed = JSON.parse(jsonMatch[0]);
             } else {
-                throw new Error('No JSON found in response');
+                throw new Error('No JSON object found');
             }
         } catch (e) {
-            console.error('Parse error:', e.message, 'Content:', content);
+            console.error('JSON parse error:', e.message, 'Raw content:', content);
             return new Response(JSON.stringify({
                 success: false,
                 error: '解析AI响应失败',
-                debug: content.substring(0, 200) // Show first 200 chars for debugging
+                debug: content.substring(0, 300)
             }), {
                 status: 500,
                 headers: { 'Content-Type': 'application/json' }
@@ -136,6 +156,18 @@ export async function onRequestPost(context) {
             });
         }
 
+        // Validate required fields
+        if (!parsed.type || !parsed.amount || !parsed.category) {
+            return new Response(JSON.stringify({
+                success: false,
+                error: 'AI返回数据不完整',
+                debug: JSON.stringify(parsed)
+            }), {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+
         return new Response(JSON.stringify({
             success: true,
             data: parsed
@@ -144,10 +176,11 @@ export async function onRequestPost(context) {
             headers: { 'Content-Type': 'application/json' }
         });
     } catch (error) {
-        console.error('AI parse error:', error);
+        console.error('AI parse error:', error.message, error.stack);
         return new Response(JSON.stringify({
             success: false,
-            error: '处理失败'
+            error: '处理失败',
+            debug: error.message
         }), {
             status: 500,
             headers: { 'Content-Type': 'application/json' }
