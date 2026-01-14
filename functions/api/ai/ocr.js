@@ -111,17 +111,26 @@ export async function onRequestPost(context) {
         // Parse JSON from response
         let parsed;
         try {
-            const jsonMatch = content.match(/\{[\s\S]*\}/);
+            // Clean up the response - remove markdown code blocks if present
+            let cleanContent = content.trim();
+
+            // Remove ```json ... ``` or ``` ... ``` wrappers
+            if (cleanContent.startsWith('```')) {
+                cleanContent = cleanContent.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '');
+            }
+
+            const jsonMatch = cleanContent.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
                 parsed = JSON.parse(jsonMatch[0]);
             } else {
-                throw new Error('No JSON found');
+                throw new Error('No JSON found in response');
             }
         } catch (e) {
-            console.error('Parse error:', e, content);
+            console.error('Parse error:', e.message, 'Content:', content);
             return new Response(JSON.stringify({
                 success: false,
-                error: '解析AI响应失败'
+                error: '解析AI响应失败',
+                debug: content.substring(0, 200)
             }), {
                 status: 500,
                 headers: { 'Content-Type': 'application/json' }
