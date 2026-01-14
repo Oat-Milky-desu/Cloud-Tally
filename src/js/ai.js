@@ -8,7 +8,10 @@ const AI = {
             if (result && result.success) {
                 return result.data;
             }
-            throw new Error(result?.error || '解析失败');
+            // Include debug info if available
+            const errorMsg = result?.error || '解析失败';
+            const debugInfo = result?.debug ? `\n调试信息: ${result.debug}` : '';
+            throw new Error(errorMsg + debugInfo);
         } catch (error) {
             console.error('AI parse error:', error);
             throw error;
@@ -25,7 +28,10 @@ const AI = {
             if (result && result.success) {
                 return result.data;
             }
-            throw new Error(result?.error || '图片识别失败');
+            // Include debug info if available
+            const errorMsg = result?.error || '图片识别失败';
+            const debugInfo = result?.debug ? `\n调试信息: ${result.debug}` : '';
+            throw new Error(errorMsg + debugInfo);
         } catch (error) {
             console.error('AI OCR error:', error);
             throw error;
