@@ -932,8 +932,19 @@ const App = {
             document.getElementById('recordCategory').value = record.category;
             document.getElementById('recordDate').value = record.date;
             document.getElementById('recordDescription').value = record.description || '';
+            // Set wallet if exists
+            const walletSelect = document.getElementById('recordWallet');
+            if (walletSelect) {
+                walletSelect.value = record.wallet_id || '';
+            }
         } else {
             title.textContent = type === 'income' ? '添加收入' : '添加支出';
+            // Set default wallet for new records
+            const defaultWallet = this.state.wallets.find(w => w.is_default);
+            const walletSelect = document.getElementById('recordWallet');
+            if (walletSelect && defaultWallet) {
+                walletSelect.value = defaultWallet.id;
+            }
         }
 
         modal.classList.add('active');

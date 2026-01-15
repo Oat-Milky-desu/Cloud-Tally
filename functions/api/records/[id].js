@@ -62,19 +62,20 @@ export async function onRequestPut(context) {
         }
 
         const data = await request.json();
-        const { type, amount, category, description, date } = data;
+        const { type, amount, category, description, date, wallet_id } = data;
 
         // Update record
         await env.DB.prepare(`
-      UPDATE records 
-      SET type = ?, amount = ?, category = ?, description = ?, date = ?, updated_at = datetime('now')
-      WHERE id = ?
-    `).bind(
+            UPDATE records 
+            SET type = ?, amount = ?, category = ?, description = ?, date = ?, wallet_id = ?, updated_at = datetime('now')
+            WHERE id = ?
+        `).bind(
             type || existing.type,
             amount !== undefined ? parseFloat(amount) : existing.amount,
             category || existing.category,
             description !== undefined ? description : existing.description,
             date || existing.date,
+            wallet_id !== undefined ? wallet_id : existing.wallet_id,
             id
         ).run();
 
