@@ -924,10 +924,15 @@ const App = {
         });
         this.populateCategorySelects();
 
-        // If editing
+        // If editing or pre-filling from AI
         if (record) {
-            title.textContent = '编辑记录';
-            document.getElementById('recordId').value = record.id;
+            // Only set ID if it exists (real edit vs AI pre-fill)
+            if (record.id) {
+                title.textContent = '编辑记录';
+                document.getElementById('recordId').value = record.id;
+            } else {
+                title.textContent = type === 'income' ? '添加收入' : '添加支出';
+            }
             document.getElementById('recordAmount').value = record.amount;
             document.getElementById('recordCategory').value = record.category;
             document.getElementById('recordDate').value = record.date;
@@ -935,7 +940,15 @@ const App = {
             // Set wallet if exists
             const walletSelect = document.getElementById('recordWallet');
             if (walletSelect) {
-                walletSelect.value = record.wallet_id || '';
+                if (record.wallet_id) {
+                    walletSelect.value = record.wallet_id;
+                } else {
+                    // Set default wallet for new records
+                    const defaultWallet = this.state.wallets.find(w => w.is_default);
+                    if (defaultWallet) {
+                        walletSelect.value = defaultWallet.id;
+                    }
+                }
             }
         } else {
             title.textContent = type === 'income' ? '添加收入' : '添加支出';
