@@ -485,16 +485,11 @@
 
         /* Charts Section */
         .charts-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
+            display: flex;
+            flex-direction: column;
             gap: 1.5rem;
             margin-top: 2rem;
-        }
-
-        @media (max-width: 768px) {
-            .charts-grid {
-                grid-template-columns: 1fr;
-            }
+            width: 100%;
         }
 
         .chart-card {
