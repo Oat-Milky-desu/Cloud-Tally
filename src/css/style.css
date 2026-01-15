@@ -1188,3 +1188,33 @@ body {
     padding: 2rem;
     color: var(--text-muted);
 }
+
+/* Charts Grid - Adjusted for vertical stacking */
+.charts-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    width: 100%;
+}
+
+.chart-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    border: 1px solid var(--border-primary);
+    width: 100%;
+    /* Ensure card doesn't overflow */
+    box-sizing: border-box;
+}
+
+.chart-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.chart-container {
+    position: relative;
+    height: 300px;
+    width: 100%;
+}
