@@ -452,6 +452,7 @@ const App = {
                 this.updateDashboardStats(result.data);
                 this.updateRecentRecords(result.data.recentRecords);
                 this.updateExpenseChart(result.data.byCategory.expense);
+                this.updateIncomeChart(result.data.byCategory.income);
             }
         } catch (error) {
             console.error('Load dashboard error:', error);
@@ -530,6 +531,14 @@ const App = {
         if (!ctx || !data || data.length === 0) return;
 
         Charts.createExpenseChart(ctx, data);
+    },
+
+    // Update income chart
+    updateIncomeChart(data) {
+        const ctx = document.getElementById('incomeChart');
+        if (!ctx || !data || data.length === 0) return;
+
+        Charts.createIncomeChart(ctx, data);
     },
 
     // Load all records with filters
@@ -679,16 +688,6 @@ const App = {
                 Charts.createTrendChart(trendCtx, trendData);
             }
 
-            // Income chart
-            const incomeCtx = document.getElementById('incomeChart');
-            if (incomeCtx && data.stats.byCategory) {
-                const incomeData = Object.entries(data.stats.byCategory)
-                    .filter(([_, v]) => v.income > 0)
-                    .map(([category, v]) => ({ category, total: v.income }));
-                if (incomeData.length > 0) {
-                    Charts.createIncomeChart(incomeCtx, incomeData);
-                }
-            }
         }
     },
 
