@@ -366,6 +366,11 @@
             border: 1px solid var(--border-primary);
             border-radius: var(--radius-lg);
             overflow: hidden;
+            /* Flex column to allow expansion */
+            display: flex;
+            flex-direction: column;
+            /* Fill available height in grid cell */
+            height: 100%;
         }
 
         .records-header {
@@ -382,8 +387,11 @@
         }
 
         .records-list {
-            max-height: 500px;
+            /* Remove fixed max-height to allow expansion */
+            flex: 1;
             overflow-y: auto;
+            /* Set a minimum height for safety */
+            min-height: 400px;
         }
 
         .record-item {
@@ -488,7 +496,8 @@
             display: flex;
             flex-direction: column;
             gap: 1.5rem;
-            margin-top: 2rem;
+            /* Remove top margin to align with records */
+            margin-top: 0;
             width: 100%;
         }
 
