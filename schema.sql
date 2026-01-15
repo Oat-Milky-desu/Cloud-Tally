@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS records (
     category TEXT NOT NULL,
     description TEXT,
     date TEXT NOT NULL,
+    wallet_id INTEGER REFERENCES wallets(id),
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now'))
 );
@@ -20,6 +21,20 @@ CREATE TABLE IF NOT EXISTS categories (
     type TEXT NOT NULL CHECK(type IN ('income', 'expense')),
     icon TEXT,
     color TEXT
+);
+
+-- Wallets table for payment methods
+CREATE TABLE IF NOT EXISTS wallets (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    type TEXT NOT NULL CHECK(type IN ('debit_card', 'credit_card', 'cash', 'fund', 'e_wallet')),
+    icon TEXT,
+    color TEXT,
+    balance REAL DEFAULT 0,
+    credit_limit REAL DEFAULT 0,
+    is_default INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
 );
 
 -- Sessions table for authentication
@@ -34,6 +49,7 @@ CREATE TABLE IF NOT EXISTS sessions (
 CREATE INDEX IF NOT EXISTS idx_records_date ON records(date);
 CREATE INDEX IF NOT EXISTS idx_records_category ON records(category);
 CREATE INDEX IF NOT EXISTS idx_records_type ON records(type);
+CREATE INDEX IF NOT EXISTS idx_records_wallet ON records(wallet_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at);
 
 -- Insert default expense categories
@@ -55,3 +71,7 @@ INSERT OR IGNORE INTO categories (name, type, icon, color) VALUES
     ('投资', 'income', '📈', '#1ABC9C'),
     ('兼职', 'income', '💼', '#16A085'),
     ('其他收入', 'income', '💵', '#58D68D');
+
+-- Insert default wallets
+INSERT OR IGNORE INTO wallets (name, type, icon, color, balance, is_default) VALUES 
+    ('现金', 'cash', '💵', '#2ECC71', 0, 1);

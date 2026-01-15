@@ -4,6 +4,7 @@ const App = {
     // State
     state: {
         categories: [],
+        wallets: [],
         currentPage: 'dashboard',
         recordsPage: 1,
         pendingAIData: null,
@@ -24,6 +25,7 @@ const App = {
 
         // Load initial data
         await this.loadCategories();
+        await this.loadWallets();
         await this.loadDashboard();
 
         // Setup event listeners
@@ -126,6 +128,210 @@ const App = {
 
             select.innerHTML = html;
         });
+    },
+
+    // Load wallets
+    async loadWallets() {
+        try {
+            const result = await API.wallets.list();
+            if (result && result.success) {
+                this.state.wallets = result.data;
+                this.populateWalletSelects();
+            }
+        } catch (error) {
+            console.error('Load wallets error:', error);
+        }
+    },
+
+    // Populate wallet select elements
+    populateWalletSelects() {
+        const select = document.getElementById('recordWallet');
+        if (!select) return;
+
+        let html = '<option value="">不指定钱包</option>';
+        this.state.wallets.forEach(w => {
+            const defaultMark = w.is_default ? ' (默认)' : '';
+            html += `<option value="${w.id}">${w.icon} ${w.name}${defaultMark}</option>`;
+        });
+        select.innerHTML = html;
+    },
+
+    // Render wallets page
+    renderWalletsPage() {
+        const list = document.getElementById('walletsList');
+        const totalAssetsEl = document.getElementById('totalAssets');
+        const totalCreditEl = document.getElementById('totalCredit');
+
+        if (!list) return;
+
+        if (this.state.wallets.length === 0) {
+            list.innerHTML = `
+                <div class="wallets-empty">
+                    <div class="wallets-empty-icon">💳</div>
+                    <h4>还没有添加钱包</h4>
+                    <p>点击上方按钮添加你的第一个钱包</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Calculate totals
+        let totalAssets = 0;
+        let totalCredit = 0;
+
+        this.state.wallets.forEach(w => {
+            if (w.type === 'credit_card') {
+                totalCredit += w.credit_limit || 0;
+            } else {
+                totalAssets += w.available || 0;
+            }
+        });
+
+        if (totalAssetsEl) totalAssetsEl.textContent = `¥${totalAssets.toFixed(2)}`;
+        if (totalCreditEl) totalCreditEl.textContent = `¥${totalCredit.toFixed(2)}`;
+
+        // Render wallet cards
+        list.innerHTML = this.state.wallets.map(w => this.renderWalletCard(w)).join('');
+    },
+
+    // Render single wallet card
+    renderWalletCard(wallet) {
+        const typeNames = {
+            'debit_card': '储蓄卡',
+            'credit_card': '信用卡',
+            'cash': '现金',
+            'fund': '基金/投资',
+            'e_wallet': '电子钱包'
+        };
+
+        const isCredit = wallet.type === 'credit_card';
+        const balanceLabel = isCredit ? '可用额度' : '余额';
+        const balanceValue = wallet.available || 0;
+        const balanceClass = balanceValue >= 0 ? 'positive' : 'negative';
+
+        return `
+            <div class="wallet-card" data-type="${wallet.type}" style="--wallet-color: ${wallet.color}">
+                ${wallet.is_default ? '<span class="wallet-default-badge">默认</span>' : ''}
+                <div class="wallet-card-header">
+                    <div class="wallet-info">
+                        <div class="wallet-icon">${wallet.icon}</div>
+                        <div>
+                            <div class="wallet-name">${wallet.name}</div>
+                            <div class="wallet-type">${typeNames[wallet.type] || wallet.type}</div>
+                        </div>
+                    </div>
+                    <div class="wallet-actions">
+                        <button class="wallet-action-btn" onclick="App.editWallet(${wallet.id})" title="编辑">✏️</button>
+                        <button class="wallet-action-btn" onclick="App.deleteWallet(${wallet.id})" title="删除">🗑️</button>
+                    </div>
+                </div>
+                <div class="wallet-balance">
+                    <div class="wallet-balance-label">${balanceLabel}</div>
+                    <div class="wallet-balance-value ${balanceClass}">¥${Math.abs(balanceValue).toFixed(2)}</div>
+                </div>
+                ${isCredit ? `
+                    <div class="wallet-credit-info">
+                        <span>总额度</span>
+                        <span>¥${(wallet.credit_limit || 0).toFixed(2)}</span>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    },
+
+    // Open wallet modal
+    openWalletModal(wallet = null) {
+        const modal = document.getElementById('walletModal');
+        const title = document.getElementById('walletModalTitle');
+        const form = document.getElementById('walletForm');
+
+        title.textContent = wallet ? '编辑钱包' : '添加钱包';
+        form.reset();
+
+        if (wallet) {
+            document.getElementById('walletId').value = wallet.id;
+            document.getElementById('walletName').value = wallet.name;
+            document.getElementById('walletType').value = wallet.type;
+            document.getElementById('walletBalance').value = wallet.balance || 0;
+            document.getElementById('walletCreditLimit').value = wallet.credit_limit || 0;
+            document.getElementById('walletColor').value = wallet.color || '#3498DB';
+            document.getElementById('walletIsDefault').checked = wallet.is_default;
+        } else {
+            document.getElementById('walletId').value = '';
+        }
+
+        this.toggleCreditLimitField();
+        modal.classList.add('active');
+    },
+
+    // Close wallet modal
+    closeWalletModal() {
+        document.getElementById('walletModal').classList.remove('active');
+    },
+
+    // Toggle credit limit field based on wallet type
+    toggleCreditLimitField() {
+        const type = document.getElementById('walletType').value;
+        const balanceGroup = document.getElementById('balanceGroup');
+        const creditGroup = document.getElementById('creditLimitGroup');
+
+        if (type === 'credit_card') {
+            balanceGroup.style.display = 'none';
+            creditGroup.style.display = 'block';
+        } else {
+            balanceGroup.style.display = 'block';
+            creditGroup.style.display = 'none';
+        }
+    },
+
+    // Save wallet
+    async saveWallet() {
+        const id = document.getElementById('walletId').value;
+        const data = {
+            name: document.getElementById('walletName').value,
+            type: document.getElementById('walletType').value,
+            balance: parseFloat(document.getElementById('walletBalance').value) || 0,
+            credit_limit: parseFloat(document.getElementById('walletCreditLimit').value) || 0,
+            color: document.getElementById('walletColor').value,
+            is_default: document.getElementById('walletIsDefault').checked
+        };
+
+        try {
+            if (id) {
+                await API.wallets.update(id, data);
+                this.showToast('钱包已更新', 'success');
+            } else {
+                await API.wallets.create(data);
+                this.showToast('钱包已创建', 'success');
+            }
+            this.closeWalletModal();
+            await this.loadWallets();
+            this.renderWalletsPage();
+        } catch (error) {
+            this.showToast(error.message || '保存失败', 'error');
+        }
+    },
+
+    // Edit wallet
+    async editWallet(id) {
+        const wallet = this.state.wallets.find(w => w.id === id);
+        if (wallet) {
+            this.openWalletModal(wallet);
+        }
+    },
+
+    // Delete wallet
+    async deleteWallet(id) {
+        if (!confirm('确定要删除这个钱包吗？')) return;
+
+        try {
+            await API.wallets.delete(id);
+            this.showToast('钱包已删除', 'success');
+            await this.loadWallets();
+            this.renderWalletsPage();
+        } catch (error) {
+            this.showToast(error.message || '删除失败', 'error');
+        }
     },
 
     // Load dashboard data
@@ -512,6 +718,33 @@ const App = {
             this.loadAnalysis();
         });
 
+        // Wallet events
+        document.getElementById('addWalletBtn')?.addEventListener('click', () => {
+            this.openWalletModal();
+        });
+
+        document.getElementById('closeWalletModal')?.addEventListener('click', () => {
+            this.closeWalletModal();
+        });
+
+        document.getElementById('cancelWalletBtn')?.addEventListener('click', () => {
+            this.closeWalletModal();
+        });
+
+        document.getElementById('saveWalletBtn')?.addEventListener('click', () => {
+            this.saveWallet();
+        });
+
+        document.getElementById('walletType')?.addEventListener('change', () => {
+            this.toggleCreditLimitField();
+        });
+
+        document.getElementById('walletModal')?.addEventListener('click', (e) => {
+            if (e.target.id === 'walletModal') {
+                this.closeWalletModal();
+            }
+        });
+
         // Record actions (using event delegation)
         document.addEventListener('click', (e) => {
             if (e.target.classList.contains('edit-btn')) {
@@ -548,6 +781,8 @@ const App = {
         // Load page-specific data
         if (page === 'records') {
             this.loadRecords(1);
+        } else if (page === 'wallets') {
+            this.renderWalletsPage();
         }
     },
 
@@ -592,12 +827,14 @@ const App = {
     // Save record
     async saveRecord() {
         const id = document.getElementById('recordId').value;
+        const walletId = document.getElementById('recordWallet')?.value;
         const data = {
             type: document.getElementById('recordType').value,
             amount: parseFloat(document.getElementById('recordAmount').value),
             category: document.getElementById('recordCategory').value,
             date: document.getElementById('recordDate').value,
-            description: document.getElementById('recordDescription').value
+            description: document.getElementById('recordDescription').value,
+            wallet_id: walletId ? parseInt(walletId) : null
         };
 
         // Validate

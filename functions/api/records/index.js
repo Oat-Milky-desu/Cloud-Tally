@@ -12,6 +12,7 @@ export async function onRequestGet(context) {
         const limit = parseInt(url.searchParams.get('limit') || '20', 10);
         const type = url.searchParams.get('type'); // 'income' or 'expense'
         const category = url.searchParams.get('category');
+        const walletId = url.searchParams.get('walletId');
         const startDate = url.searchParams.get('startDate');
         const endDate = url.searchParams.get('endDate');
         const offset = (page - 1) * limit;
@@ -40,18 +41,25 @@ export async function onRequestGet(context) {
             params.push(endDate);
         }
 
+        if (walletId) {
+            whereClause += ' AND wallet_id = ?';
+            params.push(walletId);
+        }
+
         // Get total count
         const countQuery = `SELECT COUNT(*) as total FROM records WHERE ${whereClause}`;
         const countResult = await env.DB.prepare(countQuery).bind(...params).first();
         const total = countResult?.total || 0;
 
-        // Get records
+        // Get records with wallet info
         const query = `
-      SELECT * FROM records 
-      WHERE ${whereClause}
-      ORDER BY date DESC, created_at DESC
-      LIMIT ? OFFSET ?
-    `;
+            SELECT r.*, w.name as wallet_name, w.icon as wallet_icon
+            FROM records r
+            LEFT JOIN wallets w ON r.wallet_id = w.id
+            WHERE ${whereClause}
+            ORDER BY r.date DESC, r.created_at DESC
+            LIMIT ? OFFSET ?
+        `;
         const records = await env.DB.prepare(query)
             .bind(...params, limit, offset)
             .all();
@@ -86,7 +94,7 @@ export async function onRequestPost(context) {
 
     try {
         const data = await request.json();
-        const { type, amount, category, description, date } = data;
+        const { type, amount, category, description, date, wallet_id } = data;
 
         // Validate required fields
         if (!type || !amount || !category || !date) {
@@ -112,8 +120,8 @@ export async function onRequestPost(context) {
 
         // Insert record
         const result = await env.DB.prepare(
-            'INSERT INTO records (type, amount, category, description, date) VALUES (?, ?, ?, ?, ?)'
-        ).bind(type, parseFloat(amount), category, description || '', date).run();
+            'INSERT INTO records (type, amount, category, description, date, wallet_id) VALUES (?, ?, ?, ?, ?, ?)'
+        ).bind(type, parseFloat(amount), category, description || '', date, wallet_id || null).run();
 
         // Get the inserted record
         const record = await env.DB.prepare(

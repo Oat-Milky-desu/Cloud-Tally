@@ -106,6 +106,37 @@ const API = {
         }
     },
 
+    // Wallets endpoints
+    wallets: {
+        async list() {
+            return API.request('/api/wallets');
+        },
+
+        async get(id) {
+            return API.request(`/api/wallets/${id}`);
+        },
+
+        async create(data) {
+            return API.request('/api/wallets', {
+                method: 'POST',
+                body: JSON.stringify(data)
+            });
+        },
+
+        async update(id, data) {
+            return API.request(`/api/wallets/${id}`, {
+                method: 'PUT',
+                body: JSON.stringify(data)
+            });
+        },
+
+        async delete(id) {
+            return API.request(`/api/wallets/${id}`, {
+                method: 'DELETE'
+            });
+        }
+    },
+
     // Stats endpoints
     stats: {
         async get(params = {}) {
