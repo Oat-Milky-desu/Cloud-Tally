@@ -210,7 +210,7 @@ const App = {
         const balanceClass = balanceValue >= 0 ? 'positive' : 'negative';
 
         return `
-            <div class="wallet-card" data-type="${wallet.type}" style="--wallet-color: ${wallet.color}">
+            <div class="wallet-card" data-type="${wallet.type}" data-id="${wallet.id}" style="--wallet-color: ${wallet.color}">
                 ${wallet.is_default ? '<span class="wallet-default-badge">默认</span>' : ''}
                 <div class="wallet-card-header">
                     <div class="wallet-info">
@@ -221,6 +221,7 @@ const App = {
                         </div>
                     </div>
                     <div class="wallet-actions">
+                        <button class="wallet-action-btn" onclick="App.viewWalletRecords(${wallet.id})" title="查看记录">📋</button>
                         <button class="wallet-action-btn" onclick="App.editWallet(${wallet.id})" title="编辑">✏️</button>
                         <button class="wallet-action-btn" onclick="App.deleteWallet(${wallet.id})" title="删除">🗑️</button>
                     </div>
@@ -235,6 +236,11 @@ const App = {
                         <span>¥${(wallet.credit_limit || 0).toFixed(2)}</span>
                     </div>
                 ` : ''}
+                <div class="wallet-footer">
+                    <button class="btn btn-sm btn-secondary" onclick="App.viewWalletRecords(${wallet.id})">
+                        📝 查看记录
+                    </button>
+                </div>
             </div>
         `;
     },
@@ -332,6 +338,105 @@ const App = {
         } catch (error) {
             this.showToast(error.message || '删除失败', 'error');
         }
+    },
+
+    // View wallet records
+    async viewWalletRecords(walletId) {
+        const wallet = this.state.wallets.find(w => w.id === walletId);
+        if (!wallet) return;
+
+        const modal = document.getElementById('walletRecordsModal');
+        const title = document.getElementById('walletRecordsTitle');
+        const content = document.getElementById('walletRecordsContent');
+
+        title.innerHTML = `${wallet.icon} ${wallet.name} - 交易记录`;
+        content.innerHTML = '<div class="loading">加载中...</div>';
+        modal.classList.add('active');
+
+        try {
+            const result = await API.records.list({ walletId, limit: 50 });
+            if (result && result.success) {
+                this.renderWalletRecordsList(result.data, wallet);
+            }
+        } catch (error) {
+            content.innerHTML = '<div class="error">加载失败</div>';
+        }
+    },
+
+    // Render wallet records list
+    renderWalletRecordsList(records, wallet) {
+        const content = document.getElementById('walletRecordsContent');
+
+        if (!records || records.length === 0) {
+            content.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">📝</div>
+                    <h4 class="empty-state-title">暂无记录</h4>
+                    <p class="empty-state-text">此钱包还没有任何交易记录</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Calculate summary
+        let totalIncome = 0;
+        let totalExpense = 0;
+        records.forEach(r => {
+            if (r.type === 'income') totalIncome += r.amount;
+            else totalExpense += r.amount;
+        });
+
+        let html = `
+            <div class="wallet-records-summary">
+                <div class="summary-item income">
+                    <span class="summary-label">收入</span>
+                    <span class="summary-value">+¥${totalIncome.toFixed(2)}</span>
+                </div>
+                <div class="summary-item expense">
+                    <span class="summary-label">支出</span>
+                    <span class="summary-value">-¥${totalExpense.toFixed(2)}</span>
+                </div>
+                <div class="summary-item balance">
+                    <span class="summary-label">净额</span>
+                    <span class="summary-value ${totalIncome - totalExpense >= 0 ? 'positive' : 'negative'}">
+                        ¥${(totalIncome - totalExpense).toFixed(2)}
+                    </span>
+                </div>
+            </div>
+            <div class="wallet-records-list">
+        `;
+
+        records.forEach(record => {
+            const category = this.state.categories.find(c => c.name === record.category);
+            const icon = category?.icon || '📌';
+            const isIncome = record.type === 'income';
+
+            html += `
+                <div class="record-item">
+                    <div class="record-icon" style="background: ${category?.color}20;">
+                        ${icon}
+                    </div>
+                    <div class="record-info">
+                        <div class="record-category">${record.category}</div>
+                        <div class="record-desc">${record.description || '-'}</div>
+                    </div>
+                    <div class="record-right">
+                        <div class="record-amount ${isIncome ? 'amount-income' : 'amount-expense'}">
+                            ${isIncome ? '+' : '-'}¥${record.amount.toFixed(2)}
+                        </div>
+                        <div class="record-date">${record.date}</div>
+                    </div>
+                </div>
+            `;
+        });
+
+        html += '</div>';
+        content.innerHTML = html;
+    },
+
+    // Close wallet records modal
+    closeWalletRecordsModal() {
+        document.getElementById('walletRecordsModal').classList.remove('active');
     },
 
     // Load dashboard data
@@ -745,6 +850,21 @@ const App = {
             }
         });
 
+        // Wallet records modal events
+        document.getElementById('closeWalletRecords')?.addEventListener('click', () => {
+            this.closeWalletRecordsModal();
+        });
+
+        document.getElementById('closeWalletRecordsBtn')?.addEventListener('click', () => {
+            this.closeWalletRecordsModal();
+        });
+
+        document.getElementById('walletRecordsModal')?.addEventListener('click', (e) => {
+            if (e.target.id === 'walletRecordsModal') {
+                this.closeWalletRecordsModal();
+            }
+        });
+
         // Record actions (using event delegation)
         document.addEventListener('click', (e) => {
             if (e.target.classList.contains('edit-btn')) {
@@ -864,8 +984,12 @@ const App = {
 
             this.closeRecordModal();
             this.loadDashboard();
+            // Refresh wallets to update balance
+            await this.loadWallets();
             if (this.state.currentPage === 'records') {
                 this.loadRecords(this.state.recordsPage);
+            } else if (this.state.currentPage === 'wallets') {
+                this.renderWalletsPage();
             }
         } catch (error) {
             this.showToast(error.message || '保存失败', 'error');
@@ -892,8 +1016,12 @@ const App = {
             await API.records.delete(id);
             this.showToast('记录已删除', 'success');
             this.loadDashboard();
+            // Refresh wallets to update balance
+            await this.loadWallets();
             if (this.state.currentPage === 'records') {
                 this.loadRecords(this.state.recordsPage);
+            } else if (this.state.currentPage === 'wallets') {
+                this.renderWalletsPage();
             }
         } catch (error) {
             this.showToast(error.message || '删除失败', 'error');
@@ -965,6 +1093,10 @@ const App = {
         const data = this.state.pendingAIData;
         const records = data.records || [data];
 
+        // Get default wallet
+        const defaultWallet = this.state.wallets.find(w => w.is_default);
+        const defaultWalletId = defaultWallet ? defaultWallet.id : null;
+
         try {
             let successCount = 0;
             for (const record of records) {
@@ -973,7 +1105,8 @@ const App = {
                     amount: parseFloat(record.amount),
                     category: record.category,
                     date: record.date,
-                    description: record.description
+                    description: record.description,
+                    wallet_id: defaultWalletId
                 });
                 successCount++;
             }
@@ -981,6 +1114,8 @@ const App = {
             this.showToast(`已添加 ${successCount} 条记录`, 'success');
             this.closePreviewModal();
             this.loadDashboard();
+            // Refresh wallets to update balance
+            await this.loadWallets();
         } catch (error) {
             this.showToast(error.message || '保存失败', 'error');
         }

@@ -1118,3 +1118,73 @@ body {
     border-radius: var(--radius-sm);
     margin-left: 0.5rem;
 }
+
+/* Wallet card footer */
+.wallet-footer {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-primary);
+    text-align: center;
+}
+
+/* Wallet records summary */
+.wallet-records-summary {
+    display: flex;
+    justify-content: space-around;
+    padding: 1rem;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    margin-bottom: 1rem;
+}
+
+.wallet-records-summary .summary-item {
+    text-align: center;
+}
+
+.wallet-records-summary .summary-label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-bottom: 0.25rem;
+}
+
+.wallet-records-summary .summary-value {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.wallet-records-summary .summary-item.income .summary-value {
+    color: var(--secondary);
+}
+
+.wallet-records-summary .summary-item.expense .summary-value {
+    color: var(--danger);
+}
+
+.wallet-records-summary .summary-value.positive {
+    color: var(--secondary);
+}
+
+.wallet-records-summary .summary-value.negative {
+    color: var(--danger);
+}
+
+/* Wallet records list */
+.wallet-records-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.wallet-records-list .record-item {
+    padding: 0.75rem;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+}
+
+/* Loading state */
+.loading {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-muted);
+}
